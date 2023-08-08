@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -18,10 +19,10 @@ import (
 // Structs
 type Measurement struct {
 	Id int 					`gorm:"primary_key" json:"id"`
-	Hour int 				`json:"hour"`
-	Date string 			`json:"date"`
-	Temperature float32 	`json:"temperature"`
-	WindSpeed float32 		`json:"windspeed"`
+	Hour int
+	Date string	
+	Temperature float32
+	WindSpeed float32 
 }
 
 // The Weather API response struct
@@ -51,7 +52,7 @@ var HOUR_TO_RECORD []int
 func main() {
 
 	// The hours when you wanna track the temperature
-	HOUR_TO_RECORD = []int{10, 15, 21}
+	HOUR_TO_RECORD = []int{10, 15, 20}
 
 	db.AutoMigrate(&Measurement{})
 	
@@ -64,7 +65,7 @@ func main() {
 
 	// Frontend API
 	r := mux.NewRouter()
-	r.HandleFunc("/average/{hour:[0-9]+}", handleAverage)
+	r.HandleFunc("/average", handleAverage)
 
 	log.Println("Web server started...")
 
@@ -153,44 +154,45 @@ func createRecord() {
 
 func handleAverage(w http.ResponseWriter, r *http.Request) {
 
-	vars := mux.Vars(r)
 
-	// if len(vars) == 0 {
+	var m [3][]Measurement
 
-	// 	// Average of all
+	for i := 0; i < 3; i++ {
+		db.Find(&m[i], "Hour = ?", HOUR_TO_RECORD[i])
+	}
 
-	// } else {
+	var average [3]float64
 
-		// fmt.Println("entered")
-
-		sHour := vars["hour"]
-
-		hour, err := strconv.ParseInt(sHour, 10, 32)
-
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Error")
+	for x := range(m) {
+		sum := 0.0
+		for _, y := range(m[x]) {
+			sum += float64(y.Temperature)
 		}
+		average[x] = sum / float64(len(m[x]))
+	}
 
-		var m []Measurement
 
-		err = db.Find(&m, "Hour = ?", hour).Error
+	json := simplejson.New()
+	for x, i := range(average) {
+		if math.IsNaN(i) {
+			json.Set(fmt.Sprint(HOUR_TO_RECORD[x]), "null")
+		} else {
 
-		if err != nil || len(m) == 0 {
-			// fmt.Println("Error")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"error" : true}`)
-			return
+			json.Set(fmt.Sprint(HOUR_TO_RECORD[x]), i)
 		}
+	}
 
+	payload, err := json.MarshalJSON()
 
-		fmt.Printf("m: %v\n", m)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 
-	// }
-
-	// w.WriteHeader(http.StatusOK)
-	// fmt.Fprintln(w, "Hello World")
+	w.Write(payload)
 }
 
 
