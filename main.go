@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"time"
 
-	"github.com/bitly/go-simplejson"
-	"github.com/gorilla/mux"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -62,19 +60,13 @@ func main() {
 	}
 	// Main thread for the API and the other thread for data gathering
 	go timePolling()
+	log.Println("Record gather started...")
 
-	// Frontend API
-	r := mux.NewRouter()
-	r.HandleFunc("/average", handleAverage)
+	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./src/css/"))))
+	http.Handle("/icons/", http.StripPrefix("/icons/", http.FileServer(http.Dir("./src/icons/"))))
+	http.HandleFunc("/", homePage)
+	http.ListenAndServe("", nil)
 
-	log.Println("Web server started...")
-
-	srv := &http.Server{
-		Addr: "0.0.0.0:80",
-		Handler: r,
-	}
-	srv.ListenAndServe()
-	
 
 }
 
@@ -152,8 +144,7 @@ func createRecord() {
 // Backend to Frontend API
 // ----------------------------------------------------------------------
 
-func handleAverage(w http.ResponseWriter, r *http.Request) {
-
+func homePage(w http.ResponseWriter, r *http.Request) {
 
 	var m [3][]Measurement
 
@@ -171,28 +162,22 @@ func handleAverage(w http.ResponseWriter, r *http.Request) {
 		average[x] = sum / float64(len(m[x]))
 	}
 
-
-	json := simplejson.New()
-	for x, i := range(average) {
-		if math.IsNaN(i) {
-			json.Set(fmt.Sprint(HOUR_TO_RECORD[x]), "null")
-		} else {
-
-			json.Set(fmt.Sprint(HOUR_TO_RECORD[x]), i)
-		}
-	}
-
-	payload, err := json.MarshalJSON()
+	t, err := template.ParseFiles("./src/html/index.html")
 
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal("Error: ", err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
 
-	w.Write(payload)
+	type Page struct {
+		LastExecTime string
+		Times [3]float64
+	}
+
+	p := Page{ LastExecTime: "test1231231", Times: average }
+
+	t.Execute(w, p)
+
 }
 
 

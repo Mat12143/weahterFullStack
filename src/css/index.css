@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Finlandica:ital,wght@0,500;1,500&display=swap");
+
+.customcard {
+  width: 18rem;
+  height: 22rem;
+  border-color: transparent;
+  border-radius: 1rem;
+  transition: 0.3s;
+}
+
+h5,
+h1 {
+  font-family: "Finlandica", sans-serif;
+  color: white;
+}
+
+.seracard {
+  background-color: transparent;
+}
+/* .seracard:hover {
+    background-color: #7400B8;
+} */
+
+.mattinacard {
+  background-color: transparent;
+}
+/* .mattinacard:hover {
+    background-color: #64DFDF;
+} */
+
+.pomeriggiocard {
+  background-color: transparent;
+}
+/* .pomeriggiocard:hover {
+    background-color: #5E60CE;
+} */
+
+.customcard:hover {
+  border-radius: 1.5rem;
+  width: 20rem;
+  height: 25rem;
+  transition: 0.3s;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: linear-gradient(-45deg, #6930c3, #5390d9, #72efdd);
+  background-size: 400% 400%;
+  animation: gradient 30s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.dati {
+  font-family: "Finlandica", sans-serif;
+  color: white;
+  font-weight: bold;
+  text-decoration: solid;
+  padding-bottom: 5rem;
+}
+
+.titolo {
+  color: white;
+  font-size: 5rem;
+  font-weight: bold;
+}
+
+.titolo:hover {
+  color: white;
+}
